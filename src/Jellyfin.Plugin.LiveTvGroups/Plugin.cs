@@ -16,7 +16,7 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
     /// <summary>
     /// The plugin id.
     /// </summary>
-    public const string PluginId = "7b3792b4-b988-4ec5-b9e5-1a952a652b83";
+    public const string PluginId = "3fe9208c-96c0-4ac4-a7f2-f85fb5d353c1";
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Plugin"/> class.
@@ -35,10 +35,10 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
     public static Plugin? Instance { get; private set; }
 
     /// <inheritdoc />
-    public override string Name => "Live-TV Control Center";
+    public override string Name => "TV Guide Categories";
 
     /// <inheritdoc />
-    public override string Description => "Show personal or shared channel groups in the original TV guide, with a web EPG and TV remote playback.";
+    public override string Description => "Automatically discover IPTV categories and filter the original Live TV guide.";
 
     /// <inheritdoc />
     public override Guid Id => Guid.Parse(PluginId);

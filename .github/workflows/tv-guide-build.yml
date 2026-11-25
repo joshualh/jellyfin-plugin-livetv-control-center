@@ -1,0 +1,58 @@
+name: TV Guide alpha build
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: node --check src/Jellyfin.Plugin.LiveTvGroups/Web/client.js
+      - run: dotnet test --configuration Release
+      - run: dotnet publish src/Jellyfin.Plugin.LiveTvGroups --configuration Release --output out
+      - name: Package and create catalog
+        run: |
+          mkdir package
+          cp out/Jellyfin.Plugin.LiveTvGroups.dll package/
+          cp assets/Live-TV_Control_Center_Logo.png LICENSE package/
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          meta = dict(guid='3fe9208c-96c0-4ac4-a7f2-f85fb5d353c1',name='TV Guide Categories',version='1.0.0.0',targetAbi='12.0.0.0',description='Experimental automatic IPTV category filtering.',overview='TV Guide Categories alpha',owner='joshualh',category='Live TV',status='Active',autoUpdate=False,imagePath='Live-TV_Control_Center_Logo.png')
+          Path('package/meta.json').write_text(json.dumps(meta,indent=2))
+          PY
+          (cd package && zip -r ../tv-guide-categories-alpha.zip .)
+          python3 - <<'PY'
+          import hashlib, json, os, datetime
+          from pathlib import Path
+          meta=json.loads(Path('package/meta.json').read_text())
+          v={k:meta[k] for k in ('version','targetAbi')}
+          v.update(changelog='Initial alpha. Requires testing on real clients.',sourceUrl='https://github.com/'+os.environ['GITHUB_REPOSITORY']+'/releases/download/tv-guide-alpha/tv-guide-categories-alpha.zip',checksum=hashlib.md5(Path('tv-guide-categories-alpha.zip').read_bytes()).hexdigest(),timestamp=datetime.datetime.now(datetime.timezone.utc).isoformat())
+          catalog={k:meta[k] for k in ('guid','name','description','overview','owner','category')}
+          catalog['versions']=[v]
+          Path('manifest-alpha.json').write_text(json.dumps([catalog],indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tv-guide-categories-alpha
+          path: |
+            tv-guide-categories-alpha.zip
+            manifest-alpha.json
+      - name: Publish prerelease after successful tests
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view tv-guide-alpha >/dev/null 2>&1; then
+            gh release upload tv-guide-alpha tv-guide-categories-alpha.zip manifest-alpha.json --clobber
+          else
+            gh release create tv-guide-alpha tv-guide-categories-alpha.zip manifest-alpha.json --target "$GITHUB_SHA" --prerelease --title "TV Guide Categories 1.0.0.0 alpha" --notes "Experimental build; no client APK changes. Stock Android TV still requires selecting TV Guide after navigation to Live TV."
+          fi

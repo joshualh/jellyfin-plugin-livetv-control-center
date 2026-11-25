@@ -50,9 +50,18 @@ public class GroupService
     {
         if (user.HasPermission(PermissionKind.IsDisabled) || !user.HasPermission(PermissionKind.EnableLiveTvAccess)) { return []; }
         var config = _store.GetAdministration();
-        if (config.Mode != "shared") { return _store.Get(user.Id).Groups; }
-        return config.Groups.Where(g => user.HasPermission(PermissionKind.IsAdministrator)
-            || (!g.DeniedUserIds.Contains(user.Id) && (g.VisibleToAllUsers || g.AllowedUserIds.Contains(user.Id)))).ToList();
+        var stored = config.Mode != "shared" ? _store.Get(user.Id).Groups
+            : config.Groups.Where(g => user.HasPermission(PermissionKind.IsAdministrator)
+                || (!g.DeniedUserIds.Contains(user.Id) && (g.VisibleToAllUsers || g.AllowedUserIds.Contains(user.Id)))).ToList();
+        var auto = _serviceProvider.GetService<AutoCategories>();
+        if (auto is null) return stored;
+        try
+        {
+            var generated = auto.GetGroups(GetAccessibleChannels(user));
+            var existing = stored.Select(g => g.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            return generated.Where(g => !existing.Contains(g.Name)).Concat(stored).ToList();
+        }
+        catch (Exception) { return stored; }
     }
 
     /// <summary>Gets whether the user may edit the active collection.</summary>

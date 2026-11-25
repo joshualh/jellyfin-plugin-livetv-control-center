@@ -720,3 +720,91 @@
     new MutationObserver(()=>{clearHomeEntries();stop();entryRequest++;entryPending=false;entry=null;schedule();}).observe(document.documentElement,{attributes:true,attributeFilter:['lang']});
     document.body?start():document.addEventListener('DOMContentLoaded',start);
 })();
+
+
+/* TV Guide Categories — native web guide integration. */
+(() => {
+    'use strict';
+    if (window.__tvGuideCategoryPicker) return;
+    window.__tvGuideCategoryPicker = true;
+    const patched = new WeakSet(), loading = new WeakSet();
+    const norm = id => String(id || '').replace(/-/g, '').toLowerCase();
+    const guide = () => [...document.querySelectorAll('.tvguide')].find(el => el.getClientRects().length && !el.closest('.hide,[hidden]'));
+    const key = api => 'jlh-tv-guide:' + api.serverId() + ':' + api.getCurrentUserId();
+    const selected = api => sessionStorage.getItem(key(api)) || '';
+    async function get(api, path) {
+        const res = await fetch(api.getUrl('LiveTvGroups/' + path), {
+            headers: { Authorization: 'MediaBrowser Token="' + api.accessToken() + '"' },
+            signal: AbortSignal.timeout(15000)
+        });
+        if (!res.ok) throw new Error('Category API: ' + res.status);
+        return res.json();
+    }
+    function patch(api) {
+        if (patched.has(api) || typeof api.getLiveTvChannels !== 'function') return;
+        const original = api.getLiveTvChannels;
+        const wrapper = async function(query, ...args) {
+            if (!guide() || !query || query.AddCurrentProgram !== false || query.EnableUserData !== false || !selected(api))
+                return original.call(this, query, ...args);
+            try {
+                const group = selected(api);
+                const members = await get(api, 'Groups/' + encodeURIComponent(group) + '/Channels');
+                const ids = new Set(members.Items.map(c => norm(c.Id)));
+                const allQuery = { ...query, StartIndex: 0 };
+                delete allQuery.Limit;
+                const all = await original.call(this, allQuery, ...args);
+                if (all.TotalRecordCount > all.Items.length || selected(api) !== group)
+                    return original.call(this, query, ...args);
+                const items = all.Items.filter(c => ids.has(norm(c.Id)));
+                const start = Number(query.StartIndex) || 0;
+                return { ...all, TotalRecordCount: items.length, StartIndex: start,
+                    Items: query.Limit == null ? items.slice(start) : items.slice(start, start + Number(query.Limit)) };
+            } catch (_) { return original.call(this, query, ...args); }
+        };
+        try { api.getLiveTvChannels = wrapper; if (api.getLiveTvChannels === wrapper) patched.add(api); } catch (_) {}
+    }
+    async function mount() {
+        const api = window.ApiClient;
+        if (!api || !api.accessToken?.() || !api.getCurrentUserId?.()) return;
+        patch(api);
+        const root = guide();
+        if (!root || !patched.has(api) || root.querySelector('.jlh-tv-categories') || loading.has(root)) return;
+        loading.add(root);
+        try {
+            const groups = await get(api, 'Groups');
+            if (!root.isConnected || guide() !== root || window.ApiClient !== api) return;
+            const host = document.createElement('label');
+            host.className = 'jlh-tv-categories';
+            host.style.cssText = 'display:flex;align-items:center;gap:.8em;padding:.65em 1em;';
+            host.append('Channel category');
+            const picker = document.createElement('select');
+            picker.setAttribute('aria-label', 'Channel category');
+            picker.style.cssText = 'background:#292929;color:white;border:1px solid #777;border-radius:.3em;padding:.5em;max-width:65%;';
+            picker.add(new Option('All channels', ''));
+            for (const g of groups) picker.add(new Option(g.Name + ' (' + g.ChannelCount + ')', g.Id));
+            picker.value = selected(api);
+            if (picker.selectedIndex < 0) { picker.value = ''; sessionStorage.removeItem(key(api)); }
+            picker.addEventListener('change', () => {
+                if (picker.value) sessionStorage.setItem(key(api), picker.value);
+                else sessionStorage.removeItem(key(api));
+                window.location.reload();
+            });
+            host.append(picker);
+            root.prepend(host);
+        } catch (_) {}
+        finally { loading.delete(root); }
+    }
+    let scheduled = false;
+    function schedule() {
+        if (scheduled) return;
+        scheduled = true;
+        queueMicrotask(() => { scheduled = false; mount().catch(() => {}); });
+    }
+    function start() {
+        new MutationObserver(schedule).observe(document.body, { subtree:true, childList:true, attributes:true, attributeFilter:['class','hidden'] });
+        window.addEventListener('hashchange', schedule);
+        document.addEventListener('viewshow', schedule);
+        schedule();
+    }
+    if (document.body) start(); else document.addEventListener('DOMContentLoaded', start, { once:true });
+})();

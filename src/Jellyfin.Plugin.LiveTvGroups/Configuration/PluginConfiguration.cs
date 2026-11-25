@@ -9,7 +9,7 @@ namespace Jellyfin.Plugin.LiveTvGroups.Configuration;
 /// </summary>
 public class PluginConfiguration : BasePluginConfiguration
 {
-    private string? _displayName;
+    private string? _displayName = "TV Guide";
     /// <summary>Optional server-wide display name. Empty uses the localized default.</summary>
     public string? DisplayName
     {

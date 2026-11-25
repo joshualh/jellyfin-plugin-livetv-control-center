@@ -34,6 +34,8 @@ public class PluginServiceRegistrator : IPluginServiceRegistrator
         serviceCollection.AddScoped<ChannelAccessFilter>();
         serviceCollection.Configure<MvcOptions>(options => options.Filters.AddService<ChannelAccessFilter>());
         serviceCollection.AddSingleton<GroupService>();
+        serviceCollection.AddSingleton<AutoCategories>();
+        serviceCollection.AddHostedService(sp => sp.GetRequiredService<AutoCategories>());
         serviceCollection.AddSingleton<GroupArtworkService>();
         serviceCollection.AddSingleton<NativeGuideService>();
         serviceCollection.AddSingleton<NativeGuideActionService>();
