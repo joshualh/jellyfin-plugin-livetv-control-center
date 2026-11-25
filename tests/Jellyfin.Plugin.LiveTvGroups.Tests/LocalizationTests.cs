@@ -29,13 +29,13 @@ namespace Jellyfin.Plugin.LiveTvGroups.Tests;
 public class LocalizationTests
 {
     [Theory]
-    [InlineData("de-DE", "Live-TV Control Center")]
-    [InlineData("de-AT", "Live-TV Control Center")]
-    [InlineData("en-US", "Live-TV Control Center")]
-    [InlineData("en-GB", "Live-TV Control Center")]
-    [InlineData("fr-FR", "Live-TV Control Center")]
-    [InlineData(null, "Live-TV Control Center")]
-    public void AutomaticNamesFollowLanguageWithEnglishFallback(string? language, string expected)
+    [InlineData("de-DE", "TV Guide")]
+    [InlineData("de-AT", "TV Guide")]
+    [InlineData("en-US", "TV Guide")]
+    [InlineData("en-GB", "TV Guide")]
+    [InlineData("fr-FR", "TV Guide")]
+    [InlineData(null, "TV Guide")]
+    public void DefaultNameIsTvGuideAcrossLanguages(string? language, string expected)
         => Assert.Equal(expected, PluginLocalization.DisplayName(new PluginConfiguration(), language));
 
     [Fact]
