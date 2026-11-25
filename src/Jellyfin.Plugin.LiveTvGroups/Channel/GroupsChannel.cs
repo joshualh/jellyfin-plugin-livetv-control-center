@@ -75,7 +75,7 @@ public class GroupsChannel : IChannel, IHasCacheKey
     public string Description => T("Grouped Live TV channels.");
 
     /// <inheritdoc />
-    public string DataVersion => "12"; // Refreshes existing action and group folders with their distinct artwork.
+    public string DataVersion => "13"; // Refreshes existing action and group folders with their distinct artwork.
 
     /// <inheritdoc />
     public string HomePageUrl => "https://github.com/iEnki/jellyfin-plugin-livetv-control-center";
@@ -138,7 +138,7 @@ public class GroupsChannel : IChannel, IHasCacheKey
 
         if (string.IsNullOrEmpty(query.FolderId))
         {
-            items = [Folder(NativeGuideActionRoute.AllChannelsId, T("All channels (native guide)"), Artwork.AllChannelsPath)];
+            items = [Folder(NativeGuideActionRoute.AllChannelsId, T("All channels"), Artwork.AllChannelsPath)];
             items.AddRange(groups.Select(g => Folder(GetFolderExternalId(g.Id), g.Name, Artwork.GetGroupImage(user.Id, _groups.Shared, g.Id))));
         }
         else if (NativeGuideActionRoute.TryParse(query.FolderId, out var nativeGroup))
@@ -147,7 +147,7 @@ public class GroupsChannel : IChannel, IHasCacheKey
             // may activate the authenticated device scope or send navigation commands.
             if (nativeGroup is not null && !groups.Any(g => g.Id == nativeGroup)) return new ChannelItemResult();
             var help = Folder(NativeGuideActionRoute.HelpId(nativeGroup), T("Open Live TV → TV Guide"), Artwork.EpgPath);
-            help.Overview = T("The native TV guide opens in ordinary Live TV. Select TV Guide there. Reopen the app if its old channel list remains cached.");
+            help.Overview = T("Select TV Guide in Live TV.");
             items = [help];
         }
         else if (AppGuideService.Handles(query.FolderId))
@@ -165,9 +165,9 @@ public class GroupsChannel : IChannel, IHasCacheKey
                 return new ChannelItemResult();
             }
 
-            var epg = Folder(AppGuideService.GetRootId(group.Id), T("Program list (fallback)"), Artwork.ProgramListPath);
+            var epg = Folder(AppGuideService.GetRootId(group.Id), T("Programme list"), Artwork.ProgramListPath);
             epg.IndexNumber = 1; epg.Overview = T("Program data for this group, organized by day and channel. Original Live TV remains unchanged.");
-            var native = Folder(NativeGuideActionRoute.GroupId(group.Id), T("Native TV guide"), Artwork.EpgPath);
+            var native = Folder(NativeGuideActionRoute.GroupId(group.Id), T("TV guide"), Artwork.EpgPath);
             native.IndexNumber = 0;
             native.Overview = T("Open the original Jellyfin TV guide using only this group's channels on this TV.");
             items = [native, epg];

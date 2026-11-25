@@ -33,16 +33,16 @@ jobs:
           python3 - <<'PY'
           import json
           from pathlib import Path
-          meta = dict(guid='3fe9208c-96c0-4ac4-a7f2-f85fb5d353c1',name='TV Guide Categories',version='1.0.0.2',targetAbi='12.0.0.0',description='Experimental automatic IPTV category filtering.',overview='TV Guide Categories alpha',owner='joshualh',category='Live TV',status='Active',autoUpdate=False,imagePath='Live-TV_Control_Center_Logo.png')
+          meta = dict(guid='3fe9208c-96c0-4ac4-a7f2-f85fb5d353c1',name='TV Guide Categories',version='1.0.0.3',targetAbi='12.0.0.0',description='Experimental automatic IPTV category filtering.',overview='TV Guide Categories alpha',owner='joshualh',category='Live TV',status='Active',autoUpdate=False,imagePath='Live-TV_Control_Center_Logo.png')
           Path('package/meta.json').write_text(json.dumps(meta,indent=2))
           PY
-          (cd package && zip -r ../tv-guide-categories-alpha.zip .)
+          (cd package && zip -r ../tv-guide-categories-1.0.0.3.zip .)
           python3 - <<'PY'
           import hashlib, json, os, datetime
           from pathlib import Path
           meta=json.loads(Path('package/meta.json').read_text())
           v={k:meta[k] for k in ('version','targetAbi')}
-          v.update(changelog='Initial alpha. Requires testing on real clients.',sourceUrl='https://github.com/'+os.environ['GITHUB_REPOSITORY']+'/releases/download/tv-guide-alpha/tv-guide-categories-alpha.zip',checksum=hashlib.md5(Path('tv-guide-categories-alpha.zip').read_bytes()).hexdigest(),timestamp=datetime.datetime.now(datetime.timezone.utc).isoformat())
+          v.update(changelog='Clean TV artwork and simplified category labels; includes clean web navigation fix.',sourceUrl='https://github.com/'+os.environ['GITHUB_REPOSITORY']+'/releases/download/tv-guide-alpha/tv-guide-categories-1.0.0.3.zip',checksum=hashlib.md5(Path('tv-guide-categories-1.0.0.3.zip').read_bytes()).hexdigest(),timestamp=datetime.datetime.now(datetime.timezone.utc).isoformat())
           catalog={k:meta[k] for k in ('guid','name','description','overview','owner','category')}
           catalog['versions']=[v]
           Path('manifest-alpha.json').write_text(json.dumps([catalog],indent=2))
@@ -51,15 +51,15 @@ jobs:
         with:
           name: tv-guide-categories-alpha
           path: |
-            tv-guide-categories-alpha.zip
+            tv-guide-categories-1.0.0.3.zip
             manifest-alpha.json
       - name: Publish prerelease after successful tests
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           if gh release view tv-guide-alpha >/dev/null 2>&1; then
-            gh release upload tv-guide-alpha tv-guide-categories-alpha.zip manifest-alpha.json --clobber
-            gh release edit tv-guide-alpha --title "TV Guide Categories 1.0.0.2 alpha"
+            gh release upload tv-guide-alpha tv-guide-categories-1.0.0.3.zip manifest-alpha.json --clobber
+            gh release edit tv-guide-alpha --title "TV Guide Categories 1.0.0.3 alpha"
           else
-            gh release create tv-guide-alpha tv-guide-categories-alpha.zip manifest-alpha.json --target "$GITHUB_SHA" --prerelease --title "TV Guide Categories 1.0.0.2 alpha" --notes "Experimental build; no client APK changes. Stock Android TV still requires selecting TV Guide after navigation to Live TV."
+            gh release create tv-guide-alpha tv-guide-categories-1.0.0.3.zip manifest-alpha.json --target "$GITHUB_SHA" --prerelease --title "TV Guide Categories 1.0.0.3 alpha" --notes "Experimental build; no client APK changes. Stock Android TV still requires selecting TV Guide after navigation to Live TV."
           fi

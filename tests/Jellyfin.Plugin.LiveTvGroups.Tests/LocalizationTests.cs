@@ -46,7 +46,7 @@ public class LocalizationTests
         Assert.Equal("Family TV", PluginLocalization.DisplayName(configuration, "en-US"));
         configuration.DisplayName = "   ";
         Assert.Null(configuration.DisplayName);
-        Assert.Equal("Live-TV Control Center", PluginLocalization.DisplayName(configuration, "de-DE"));
+        Assert.Equal("TV Guide", PluginLocalization.DisplayName(configuration, "de-DE"));
         Assert.Throws<ArgumentException>(() => configuration.DisplayName = new string('x', 101));
         Assert.Throws<ArgumentException>(() => configuration.DisplayName = "Family\nTV");
     }
@@ -94,7 +94,7 @@ public class LocalizationTests
             var service = new ChannelDisplayNameService(services, InterfaceStub.Create<IHostApplicationLifetime>((m,a)=>null), NullLogger<ChannelDisplayNameService>.Instance);
 
             await service.UpdateDisplayName(CancellationToken.None);
-            Assert.Equal("Live-TV Control Center", channel.Name);
+            Assert.Equal("TV Guide", channel.Name);
             Assert.Equal(artwork.RootLogoPath, channel.GetImageInfo(ImageType.Primary, 0)?.Path);
             Assert.Equal([ItemUpdateType.ImageUpdate], writes);
             await service.UpdateDisplayName(CancellationToken.None);
@@ -139,7 +139,7 @@ public class LocalizationTests
         else Assert.Equal(System.Text.Json.JsonValueKind.Null,json.GetProperty("ChannelId").ValueKind);
         Assert.Equal(canRecord,json.GetProperty("CanRecord").GetBoolean());
         Assert.False(json.GetProperty("HideOriginalLiveTvHomeEntry").GetBoolean());
-        Assert.Equal("Live-TV Control Center",json.GetProperty("DisplayName").GetString());
+        Assert.Equal("TV Guide",json.GetProperty("DisplayName").GetString());
     }
 
     [Fact]

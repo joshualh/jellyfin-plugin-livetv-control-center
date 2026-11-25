@@ -4,7 +4,7 @@
     if (window.__liveTvGroupsLoaded) return;
     window.__liveTvGroupsLoaded = true;
     const t = key => window.LiveTvGroupsI18n.t(key);
-    const displayName = () => entry?.DisplayName || t('Live-TV Control Center');
+    const displayName = () => entry?.DisplayName || t('TV Guide');
     const PAGE = 'ltvg-page', MODAL = 'ltvg-modal';
     const views = { programs:'Programs', guide:'TV guide', channels:'Channels', manage:'Manage groups' };
     let entryRequest = 0;

@@ -151,7 +151,7 @@ public class NativeAppTests
         var folder = await channelProvider.GetChannelItems(new InternalChannelItemQuery { UserId = f.User.Id, FolderId = GroupsChannel.GetFolderExternalId(f.Group) }, CancellationToken.None);
         Assert.Equal(3, folder.Items.Count);
         var guideRoot = folder.Items.Single(i => AppGuideService.Handles(i.Id));
-        Assert.Equal("Programmliste (Fallback)", guideRoot.Name);
+        Assert.Equal("Programmliste", guideRoot.Name);
         var guide = new AppGuideService(f.Groups, f.Services);
         var days = await guide.GetItems(f.User, guideRoot.Id, CancellationToken.None);
         Assert.Equal(7, days.Items.Count);
@@ -245,7 +245,9 @@ public class NativeAppTests
         Assert.NotEqual(germanCache, provider.GetCacheKey(f.User.Id.ToString()));
         var folder = await provider.GetChannelItems(new InternalChannelItemQuery { UserId=f.User.Id,FolderId=GroupsChannel.GetFolderExternalId(f.Group) }, CancellationToken.None);
         var root = folder.Items.Single(i=>AppGuideService.Handles(i.Id));
-        Assert.Equal("Program list (fallback)",root.Name);
+        Assert.Equal("Programme list",root.Name);
+        var categories = await provider.GetChannelItems(new InternalChannelItemQuery { UserId = f.User.Id }, CancellationToken.None);
+        Assert.Equal("All channels", categories.Items[0].Name);
         var guide=f.Services.GetRequiredService<AppGuideService>();
         var days=await guide.GetItems(f.User,root.Id,CancellationToken.None);
         Assert.StartsWith("Today",days.Items[0].Name,StringComparison.Ordinal);
