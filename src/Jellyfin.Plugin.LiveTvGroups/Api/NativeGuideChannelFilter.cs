@@ -24,10 +24,12 @@ public class NativeGuideChannelFilter(NativeGuideService scopes, IUserManager us
         var descriptor = context.ActionDescriptor as ControllerActionDescriptor;
         var principal = context.HttpContext.User;
         var device = principal.FindFirst("Jellyfin-DeviceId")?.Value;
+        var explicitCategory = Guid.TryParse(context.HttpContext.Request.Query["TvGuideCategoryId"].ToString(), out var categoryId) && categoryId != Guid.Empty;
+        var nativeClient = PlayerService.IsNativeGuideClient(principal.FindFirst("Jellyfin-Client")?.Value);
         if (descriptor?.ControllerTypeInfo.FullName != "Jellyfin.Api.Controllers.LiveTvController"
             || descriptor.ActionName != "GetLiveTvChannels"
             || principal.Identity?.IsAuthenticated != true
-            || !PlayerService.IsNativeGuideClient(principal.FindFirst("Jellyfin-Client")?.Value)
+            || (!nativeClient && !explicitCategory)
             || !string.Equals(principal.FindFirst("Jellyfin-IsApiKey")?.Value, "False", StringComparison.OrdinalIgnoreCase)
             || string.IsNullOrWhiteSpace(device)
             || !Guid.TryParse(principal.FindFirst("Jellyfin-UserId")?.Value, out var userId) || userId == Guid.Empty
@@ -37,12 +39,12 @@ public class NativeGuideChannelFilter(NativeGuideService scopes, IUserManager us
         var active = false;
         try
         {
-            var observed = scopes.GetSelection(userId, device);
+            var observed = explicitCategory ? new NativeGuideSelection(categoryId) : scopes.GetSelection(userId, device);
             if (observed is not null && users.GetUserById(userId) is { } user)
             {
                 if (scopes.Resolve(user, observed) is null)
                 {
-                    scopes.ClearSelection(userId, device, observed);
+                    if (!explicitCategory) scopes.ClearSelection(userId, device, observed);
                     logger.LogDebug("Native guide scope invalid for user {UserId}, device {DeviceId}; ordinary Live TV retained.", userId, device);
                 }
                 else active = true;
@@ -77,10 +79,10 @@ public class NativeGuideChannelFilter(NativeGuideService scopes, IUserManager us
         try
         {
             // Re-read after the action: reset, replacement, deletion and permission changes may race it.
-            var current = scopes.GetSelection(userId, device);
+            var current = explicitCategory ? new NativeGuideSelection(categoryId) : scopes.GetSelection(userId, device);
             var user = users.GetUserById(userId);
             var allowed = current is null || user is null ? null : scopes.Resolve(user, current);
-            if (current is not null && allowed is null) scopes.ClearSelection(userId, device, current);
+            if (!explicitCategory && current is not null && allowed is null) scopes.ClearSelection(userId, device, current);
             if (allowed is not null)
             {
                 items = items.Where(item => allowed.Contains(item.Id)).ToArray();

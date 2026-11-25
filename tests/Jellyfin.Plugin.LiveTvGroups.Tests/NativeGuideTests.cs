@@ -70,6 +70,22 @@ public class NativeGuideTests
     }
 
     [Fact]
+    public async Task ExplicitWebGuideCategoryFiltersWithoutChangingTvScope()
+    {
+        using var f = new AccessFixture();
+        var service = new NativeGuideService(f.Store, f.Groups);
+        var group = Group(f);
+        var web = Http(f, client: "Jellyfin Web");
+        web.Request.QueryString = new QueryString("?TvGuideCategoryId=" + group);
+        var result = await Invoke(f, service, web, limit: null);
+        Assert.Equal(f.News.Id, Assert.Single(result.Items).Id);
+        Assert.Equal(1, result.TotalRecordCount);
+        Assert.Null(service.GetSelection(f.Alice.Id, "tv"));
+        web.Request.QueryString = QueryString.Empty;
+        Assert.Equal(2, (await Invoke(f, service, web, limit: null)).TotalRecordCount);
+    }
+
+    [Fact]
     public async Task VisibleGroupUnionDeduplicatesOriginalChannelsAndExcludesHiddenGroups()
     {
         using var f=new AccessFixture();var service=new NativeGuideService(f.Store,f.Groups);
