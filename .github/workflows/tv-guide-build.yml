@@ -19,6 +19,10 @@ jobs:
       - run: node --check src/Jellyfin.Plugin.LiveTvGroups/Web/client.js
       - name: Verify plugin settings identity
         run: python3 -c "import re,pathlib; p=pathlib.Path('src/Jellyfin.Plugin.LiveTvGroups'); assert re.search(r'PluginId = \"([^\"]+)\"', (p/'Plugin.cs').read_text())[1] in (p/'Configuration/configPage.html').read_text()"
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Test clean guide navigation
+        run: node --test tests/web/native-guide-navigation.test.cjs
       - run: dotnet test --configuration Release
       - run: dotnet publish src/Jellyfin.Plugin.LiveTvGroups --configuration Release --output out
       - name: Package and create catalog
@@ -29,7 +33,7 @@ jobs:
           python3 - <<'PY'
           import json
           from pathlib import Path
-          meta = dict(guid='3fe9208c-96c0-4ac4-a7f2-f85fb5d353c1',name='TV Guide Categories',version='1.0.0.1',targetAbi='12.0.0.0',description='Experimental automatic IPTV category filtering.',overview='TV Guide Categories alpha',owner='joshualh',category='Live TV',status='Active',autoUpdate=False,imagePath='Live-TV_Control_Center_Logo.png')
+          meta = dict(guid='3fe9208c-96c0-4ac4-a7f2-f85fb5d353c1',name='TV Guide Categories',version='1.0.0.2',targetAbi='12.0.0.0',description='Experimental automatic IPTV category filtering.',overview='TV Guide Categories alpha',owner='joshualh',category='Live TV',status='Active',autoUpdate=False,imagePath='Live-TV_Control_Center_Logo.png')
           Path('package/meta.json').write_text(json.dumps(meta,indent=2))
           PY
           (cd package && zip -r ../tv-guide-categories-alpha.zip .)
@@ -55,6 +59,7 @@ jobs:
         run: |
           if gh release view tv-guide-alpha >/dev/null 2>&1; then
             gh release upload tv-guide-alpha tv-guide-categories-alpha.zip manifest-alpha.json --clobber
+            gh release edit tv-guide-alpha --title "TV Guide Categories 1.0.0.2 alpha"
           else
-            gh release create tv-guide-alpha tv-guide-categories-alpha.zip manifest-alpha.json --target "$GITHUB_SHA" --prerelease --title "TV Guide Categories 1.0.0.1 alpha" --notes "Experimental build; no client APK changes. Stock Android TV still requires selecting TV Guide after navigation to Live TV."
+            gh release create tv-guide-alpha tv-guide-categories-alpha.zip manifest-alpha.json --target "$GITHUB_SHA" --prerelease --title "TV Guide Categories 1.0.0.2 alpha" --notes "Experimental build; no client APK changes. Stock Android TV still requires selecting TV Guide after navigation to Live TV."
           fi

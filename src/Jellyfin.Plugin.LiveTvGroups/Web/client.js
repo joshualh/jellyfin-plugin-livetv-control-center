@@ -700,6 +700,29 @@
         }
         keep.forEach(element => { element.setAttribute('data-ltvg-hidden-home-entry', '');hiddenHomeEntries.add(element); });
     }
+    // A hash-only redirect can leave the legacy folder view mounted under the guide.
+    let guideNavigationPending = false;
+    function openNativeGuide(current, replace) {
+        if (guideNavigationPending) return;
+        guideNavigationPending = true;
+        if (active) stop();
+        const target = new URL(location.href);
+        target.hash = '#/livetv?tab=1&serverId=' + encodeURIComponent(current.serverId());
+        if (replace) history.replaceState(null, '', target.href);
+        else history.pushState(null, '', target.href);
+        location.reload();
+    }
+    document.addEventListener('click', event => {
+        if (event.defaultPrevented || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+        const link = event.target?.closest?.('a[href]');
+        if (!link || !entry?.ChannelId || !client()?.accessToken?.()) return;
+        const url = entryRoute(link);
+        if (url?.pathname !== '/list' || id(url.searchParams.get('parentId')) !== id(entry.ChannelId)
+            || url.searchParams.has('view')) return;
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        openNativeGuide(client(), false);
+    }, true);
     function ensure() {
         const current=client();const key=current?.getCurrentUserId?.()+'|'+current?.serverId?.();
         if(!current?.accessToken?.()||!current.getCurrentUserId()){clearHomeEntries();if(active)stop();entry=null;entryRequest++;entryPending=false;userKey='';return;}
@@ -714,7 +737,7 @@
         // The web tile is an alias of the original EPG, not a second guide.
         // Keep the independent group page reachable via Plugin Pages or an explicit management route.
         if (ownRoute() && !new URLSearchParams(location.hash.split('?')[1] || '').has('view')) {
-            location.replace('#/livetv?tab=1&serverId=' + encodeURIComponent(current.serverId()));
+            openNativeGuide(current, true);
             return;
         }
         mount();
